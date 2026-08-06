@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Cruce — Simulador de decisiones patrimoniales</title>
+<meta name="description" content="Simulador de caminos financieros: vender, pagar deudas, arrendar o volver a comprar. Datos de la casa, escenarios comparados y proyección a 5 años.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#EDF0E7;
+  --carta:#FCFCFA;
+  --tinta:#17201A;
+  --tinta-60:#5A6459;
+  --tinta-35:#8E958B;
+  --regla:#C9D8C1;
+  --regla-suave:#DDE6D7;
+  --rojo:#9E2A1C;
+  --verde:#2E6F4B;
+  --azul:#1F4E6B;
+  --oro:#B08214;
+  --morado:#5C4B7D;
+  --sombra:0 1px 0 rgba(23,32,26,.06), 0 8px 24px -18px rgba(23,32,26,.5);
+  --display:'Bricolage Grotesque','Public Sans',system-ui,sans-serif;
+  --cuerpo:'Public Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--papel);color:var(--tinta);
+  font-family:var(--cuerpo);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:-.025em;margin:0;line-height:1.05}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+a{color:var(--azul)}
+hr{border:0;border-top:1px solid var(--regla);margin:0}
+
+/* ---------- estructura ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+section{padding:52px 0}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tinta-35);display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--regla)}
+.lede{max-width:62ch;color:var(--tinta-60);margin:12px 0 0}
+
+/* ---------- barra superior ---------- */
+header.top{
+  position:sticky;top:0;z-index:40;background:rgba(237,240,231,.93);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--regla);
+}
+.top-in{display:flex;align-items:center;gap:18px;padding:11px 20px;max-width:1180px;margin:0 auto;flex-wrap:wrap}
+.marca{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:-.03em;white-space:nowrap}
+.marca span{color:var(--tinta-35);font-weight:400}
+.nav{display:flex;gap:16px;margin-left:auto;flex-wrap:wrap}
+.nav a{
+  font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--tinta-60);text-decoration:none;padding:4px 0;border-bottom:1px solid transparent;
+}
+.nav a:hover{color:var(--tinta);border-color:var(--tinta)}
+
+/* ---------- hero / hoy ---------- */
+.hero{padding:56px 0 40px;border-bottom:1px solid var(--regla)}
+.hero h1{font-size:clamp(38px,6.2vw,72px);max-width:16ch}
+.hero h1 em{font-style:normal;color:var(--rojo)}
+.balanza{margin:38px 0 0;display:grid;gap:6px}
+.bar-row{display:grid;grid-template-columns:130px 1fr;gap:14px;align-items:center}
+.bar-lab{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--tinta-60);text-align:right}
+.bar-track{height:34px;position:relative;background:var(--regla-suave);border:1px solid var(--regla)}
+.bar-fill{height:100%;display:flex;align-items:center;padding:0 10px;color:#fff;font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap}
+.bar-fill.ing{background:var(--verde)}
+.bar-fill.sal{background:var(--rojo)}
+.bar-gap{position:absolute;top:0;bottom:0;border-left:2px dashed var(--tinta);display:flex;align-items:center}
+.bar-gap b{font-family:var(--mono);font-size:12px;background:var(--tinta);color:var(--papel);padding:2px 7px;margin-left:2px;font-weight:500}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--regla);border:1px solid var(--regla);margin-top:34px}
+.kpi{background:var(--carta);padding:18px 18px 16px}
+.kpi .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--tinta-35)}
+.kpi .v{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.04em;margin-top:7px}
+.kpi .n{font-size:12px;color:var(--tinta-60);margin-top:4px}
+.neg{color:var(--rojo)} .pos{color:var(--verde)}
+
+/* ---------- bifurcación ---------- */
+.fork-box{background:var(--carta);border:1px solid var(--regla);box-shadow:var(--sombra);padding:18px 12px 10px;overflow-x:auto}
+svg.fork{display:block;width:100%;min-width:640px;height:auto}
+svg.fork .rama{cursor:pointer}
+svg.fork .rama path{transition:stroke-width .18s}
+svg.fork .rama:hover path{stroke-width:4.5}
+
+/* ---------- escenarios ---------- */
+.esc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px}
+.esc{background:var(--carta);border:1px solid var(--regla);box-shadow:var(--sombra);display:flex;flex-direction:column;border-top:4px solid var(--tinta)}
+.esc-head{padding:15px 16px 13px;border-bottom:1px solid var(--regla-suave);display:flex;align-items:flex-start;gap:10px}
+.esc-head h3{font-size:19px;flex:1}
+.esc-head .tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-35);margin-top:5px;display:block}
+.btn-x{border:1px solid var(--regla);background:transparent;color:var(--tinta-35);cursor:pointer;font-size:15px;line-height:1;padding:3px 7px;border-radius:2px}
+.btn-x:hover{color:var(--rojo);border-color:var(--rojo)}
+.esc-res{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px 10px;border-bottom:1px solid var(--regla-suave)}
+.res-it .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-35)}
+.res-it .v{font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:-.03em;margin-top:2px}
+.esc-ctl{padding:14px 16px;display:grid;gap:11px}
+.ctl-lab{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--tinta-35)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.chip{
+  font-family:var(--mono);font-size:11.5px;padding:5px 10px;border:1px solid var(--regla);
+  background:transparent;cursor:pointer;color:var(--tinta-60);border-radius:2px;user-select:none;
+}
+.chip:hover{border-color:var(--tinta-35)}
+.chip.on{background:var(--tinta);border-color:var(--tinta);color:var(--papel)}
+.row-in{display:flex;align-items:center;gap:8px;margin-top:5px}
+.row-in label{font-size:12.5px;color:var(--tinta-60);flex:1}
+input[type=text].money,input.mini{
+  font-family:var(--mono);font-size:13px;border:1px solid var(--regla);background:var(--papel);
+  color:var(--tinta);padding:5px 8px;width:120px;text-align:right;border-radius:2px;
+}
+input.mini{width:74px}
+input:focus,select:focus,.chip:focus-visible,button:focus-visible{outline:2px solid var(--azul);outline-offset:1px}
+select{font-family:var(--mono);font-size:12.5px;padding:5px 6px;border:1px solid var(--regla);background:var(--papel);color:var(--tinta);border-radius:2px}
+
+/* ---------- botones ---------- */
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  padding:9px 15px;border:1px solid var(--tinta);background:var(--tinta);color:var(--papel);
+  cursor:pointer;border-radius:2px;
+}
+.btn:hover{background:#0d1410}
+.btn.ghost{background:transparent;color:var(--tinta)}
+.btn.ghost:hover{background:var(--regla-suave)}
+.acciones{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+
+/* ---------- tablas ---------- */
+.tbl-wrap{overflow-x:auto;background:var(--carta);border:1px solid var(--regla);box-shadow:var(--sombra)}
+table{border-collapse:collapse;width:100%;min-width:600px}
+th,td{padding:9px 12px;text-align:right;font-family:var(--mono);font-size:12.5px;border-bottom:1px solid var(--regla-suave)}
+th{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-35);
+  font-weight:500;border-bottom:1px solid var(--regla);position:sticky;top:0;background:var(--carta);
+}
+th:first-child,td:first-child{text-align:left;font-family:var(--cuerpo);font-size:13.5px}
+tbody tr:nth-child(even) td{background:rgba(201,216,193,.28)}
+td.hi{font-weight:600}
+.tbl-wrap.comparar td:first-child{color:var(--tinta-60)}
+
+/* ---------- gráfico ---------- */
+.chart-box{background:var(--carta);border:1px solid var(--regla);box-shadow:var(--sombra);padding:16px 14px 10px;margin-top:16px}
+svg.chart{display:block;width:100%;height:auto}
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;padding:10px 4px 2px;font-family:var(--mono);font-size:11.5px;color:var(--tinta-60)}
+.leyenda i{display:inline-block;width:16px;height:3px;margin-right:6px;vertical-align:middle}
+
+/* ---------- datos (acordeón) ---------- */
+details.datos{background:var(--carta);border:1px solid var(--regla);margin-bottom:10px;box-shadow:var(--sombra)}
+details.datos>summary{
+  cursor:pointer;padding:13px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--tinta-60);list-style:none;display:flex;align-items:center;gap:10px;
+}
+details.datos>summary::-webkit-details-marker{display:none}
+details.datos>summary::before{content:"+";font-size:15px;color:var(--tinta-35)}
+details.datos[open]>summary::before{content:"–"}
+details.datos[open]>summary{border-bottom:1px solid var(--regla)}
+.datos-in{padding:4px 0 0}
+.nota{font-size:12.5px;color:var(--tinta-60);padding:12px 16px;background:rgba(176,130,20,.08);border-left:3px solid var(--oro);margin:12px 16px}
+.editable{background:rgba(31,78,107,.07)}
+td input{width:100%;max-width:130px}
+
+footer{border-top:1px solid var(--regla);padding:28px 0 46px;color:var(--tinta-35);font-size:12.5px}
+footer p{max-width:70ch;margin:0 0 8px}
+
+@media (max-width:640px){
+  section{padding:38px 0}
+  .bar-row{grid-template-columns:84px 1fr;gap:9px}
+  .bar-lab{font-size:10px}
+  .esc-res{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+@media print{header.top,.acciones,.chips,.btn{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="marca">El Cruce <span>· plan de la casa</span></div>
+    <nav class="nav">
+      <a href="#hoy">Hoy</a>
+      <a href="#caminos">Caminos</a>
+      <a href="#escenarios">Escenarios</a>
+      <a href="#comparar">Comparar</a>
+      <a href="#datos">Datos</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero wrap" id="hoy">
+  <div class="eyebrow">Punto de partida · <span id="hoy-fecha"></span></div>
+  <h1>Cada mes la casa gasta <em id="hero-gap">—</em> más de lo que entra.</h1>
+  <p class="lede">Esto no es un presupuesto: es un tablero de decisiones. Toma los números reales de la plantilla —ingresos, cuentas mensuales y saldos de deuda— y responde una sola pregunta: <strong>qué pasa con la plata cada mes según el camino que tomen</strong>. Todo lo que ves es editable.</p>
+
+  <div class="balanza" id="balanza"></div>
+  <div class="kpis" id="kpis-hoy"></div>
+</section>
+
+<section class="wrap" id="caminos">
+  <div class="eyebrow">La bifurcación</div>
+  <h2 style="font-size:clamp(26px,4vw,40px)">Los caminos, uno al lado del otro</h2>
+  <p class="lede">Cada rama arranca hoy y termina en el flujo de caja mensual que quedaría después de vender, pagar y reacomodar la vivienda. Toca una rama para verla en detalle.</p>
+  <div class="fork-box" style="margin-top:26px"><svg class="fork" id="fork" role="img" aria-label="Diagrama de caminos financieros"></svg></div>
+</section>
+
+<section class="wrap" id="escenarios">
+  <div class="eyebrow">Escenarios</div>
+  <h2 style="font-size:clamp(26px,4vw,40px)">Arma el camino que quieras</h2>
+  <p class="lede">Prende y apaga lo que se vende, decide qué deudas se pagan con esa plata y define dónde viven después. Los resultados se recalculan solos.</p>
+  <div class="acciones">
+    <button class="btn" id="add-esc">+ Nuevo escenario</button>
+    <button class="btn ghost" id="reset">Volver a los valores originales</button>
+  </div>
+  <div class="esc-grid" id="esc-grid" style="margin-top:22px"></div>
+</section>
+
+<section class="wrap" id="comparar">
+  <div class="eyebrow">Comparación</div>
+  <h2 style="font-size:clamp(26px,4vw,40px)">A cinco años vista</h2>
+  <p class="lede">La proyección corre mes a mes: los saldos siguen cobrando intereses, las cuotas desaparecen cuando la deuda queda en cero, los gastos suben con inflación y el sobrante rinde. Si el flujo queda negativo, el hueco se financia y también cobra intereses.</p>
+  <div class="tbl-wrap comparar" style="margin-top:22px"><table id="tabla-comp"></table></div>
+  <div class="chart-box">
+    <div class="ctl-lab" style="padding:2px 4px 8px">Patrimonio neto proyectado (activos + caja − deudas)</div>
+    <svg class="chart" id="chart-pat" viewBox="0 0 900 340" role="img" aria-label="Proyección de patrimonio neto"></svg>
+    <div class="leyenda" id="leyenda-pat"></div>
+  </div>
+  <div class="chart-box">
+    <div class="ctl-lab" style="padding:2px 4px 8px">Caja disponible mes a mes (lo que queda en el bolsillo)</div>
+    <svg class="chart" id="chart-caja" viewBox="0 0 900 300" role="img" aria-label="Proyección de caja"></svg>
+    <div class="leyenda" id="leyenda-caja"></div>
+  </div>
+</section>
+
+<section class="wrap" id="datos">
+  <div class="eyebrow">Los datos</div>
+  <h2 style="font-size:clamp(26px,4vw,40px)">Todo esto se puede corregir</h2>
+  <p class="lede">Las cifras vienen de la plantilla. Lo que está sobre fondo azul son supuestos que hay que confirmar: valores comerciales, tasas de interés y costos de venta. Escribe los montos como quieras: <span class="num">430m</span>, <span class="num">430.000.000</span> o <span class="num">850k</span>.</p>
+
+  <div style="margin-top:22px">
+    <details class="datos" open>
+      <summary>Activos — lo que se puede vender</summary>
+      <div class="datos-in"><div class="tbl-wrap" style="border:0;box-shadow:none"><table id="t-activos"></table></div>
+      <div class="nota">El valor del apartamento viene de lo que ustedes dijeron. El carro y el campo son supuestos: pónganles el valor comercial real antes de tomar cualquier decisión.</div></div>
+    </details>
+    <details class="datos">
+      <summary>Deudas — saldos, tasas y cuotas</summary>
+      <div class="datos-in"><div class="tbl-wrap" style="border:0;box-shadow:none"><table id="t-deudas"></table></div>
+      <div class="nota">Las tasas son estimadas por tipo de crédito (hipotecario, vehículo, tarjeta, libre inversión, familiar). Cámbienlas por las reales del extracto: de ahí sale cuál deuda conviene matar primero. "Cuota estimada" aparece cuando la deuda no tiene un pago mensual asignado en la plantilla.</div></div>
+    </details>
+    <details class="datos">
+      <summary>Cuentas mensuales — lo que sale cada mes</summary>
+      <div class="datos-in"><div class="tbl-wrap" style="border:0;box-shadow:none"><table id="t-cuentas"></table></div>
+      <div class="nota">"Se va con el apto" marca los gastos que desaparecen si venden el apartamento (administración, cuota de hipoteca). Los servicios siguen porque también se pagan arrendando.</div></div>
+    </details>
+    <details class="datos">
+      <summary>Ingresos</summary>
+      <div class="datos-in"><div class="tbl-wrap" style="border:0;box-shadow:none"><table id="t-ingresos"></table></div></div>
+    </details>
+    <details class="datos">
+      <summary>Supuestos de la proyección</summary>
+      <div class="datos-in"><div class="tbl-wrap" style="border:0;box-shadow:none"><table id="t-supuestos"></table></div></div>
+    </details>
+  </div>
+
+  <div class="acciones">
+    <button class="btn ghost" id="export">Descargar mis datos (JSON)</button>
+    <button class="btn ghost" id="import-btn">Cargar datos</button>
+    <input type="file" id="import" accept="application/json" hidden>
+    <button class="btn ghost" id="print">Imprimir / PDF</button>
+  </div>
+</section>
+
+<footer class="wrap">
+  <p>Hecho con los datos de <em>Plantilla de parejas — versión 2</em>. Las proyecciones son aritmética con supuestos: no incluyen impuestos de la venta (ganancia ocasional), prepago de créditos con penalidad, ni cambios de tasa. Antes de vender un inmueble, confirmen con un contador el efecto tributario y con el banco el saldo exacto de liquidación.</p>
+  <p class="num" style="font-size:11px">El Cruce · v1.0</p>
+</footer>
+
+<script>
+/* =====================================================================
+   1. DATOS SEMILLA — tomados de "Plantilla de parejas versión 2"
+   ===================================================================== */
+const SEED = {
+  personas:{p1:"WILLY", p2:"ADRY"},
+  ingresos:[
+    {n:"Salario",  w:12000000, a:5400000},
+    {n:"Negocios", w:0, a:0},
+    {n:"Comisiones", w:0, a:0},
+    {n:"Bono",     w:0, a:0}
+  ],
+  /* casa:true  -> el gasto desaparece si venden el apartamento
+     deudaId    -> esta cuenta es la cuota de esa deuda (se acaba cuando el saldo llega a cero) */
+  cuentas:[
+    {n:"Renta Elina",        w:0,       a:1683000},
+    {n:"Gas",                w:400000,  a:0},
+    {n:"Agua",               w:230000,  a:0},
+    {n:"Energía",            w:864000,  a:0},
+    {n:"Internet",           w:190000,  a:0},
+    {n:"Renta July",         w:2800000, a:0},
+    {n:"Universidad July",   w:0,       a:2000000},
+    {n:"Administración",     w:850000,  a:0, casa:true},
+    {n:"Mercado",            w:600000,  a:0},
+    {n:"Varios Adry",        w:0,       a:350000},
+    {n:"Celular Willy",      w:120000,  a:0},
+    {n:"Solventa",           w:800000,  a:0},
+    {n:"Manutención July",   w:1800000, a:0},
+    {n:"Cuota crédito Willy",w:1500000, a:0, deudaId:"cred_willy"},
+    {n:"Cuota carro",        w:1900000, a:0, deudaId:"carro"},
+    {n:"Cuota crédito Davivienda", w:0, a:500000, deudaId:"davivienda"},
+    {n:"Cuota T.C. July",    w:300000,  a:0, deudaId:"tc_july"},
+    {n:"Cuota hipoteca",     w:3000000, a:0, deudaId:"hipoteca", casa:true},
+    {n:"Cuota Bco Bogotá",   w:320000,  a:320000, deudaId:"bco_bogota"},
+    {n:"Cuota Cotrafa",      w:120000,  a:0, deudaId:"cotrafa"},
+    {n:"Cuota Dianita",      w:0,       a:290000, deudaId:"diana"},
+    {n:"Cuota Davivienda",   w:0,       a:435000, deudaId:"davivienda"},
+    {n:"Arriendo Bogotá",    w:0,       a:0}
+  ],
+  /* tasaEA = supuesto por tipo de crédito, editable */
+  deudas:[
+    {id:"hipoteca",   n:"Crédito hipotecario", w:130000000, a:0, tasaEA:0.13},
+    {id:"carro",      n:"Crédito de carro",    w:110000000, a:0, tasaEA:0.16},
+    {id:"tc_willy",   n:"Tarjeta de crédito Willy", w:40000000, a:0, tasaEA:0.30},
+    {id:"cred_willy", n:"Crédito Willy",       w:40000000, a:0, tasaEA:0.22},
+    {id:"admin_mora", n:"Administración en mora", w:4500000, a:0, tasaEA:0.12},
+    {id:"cotrafa",    n:"Cotrafa",             w:3500000, a:0, tasaEA:0.20},
+    {id:"bco_bogota", n:"Banco de Bogotá",     w:0, a:10000000, tasaEA:0.24},
+    {id:"davivienda", n:"Davivienda",          w:0, a:4000000, tasaEA:0.24},
+    {id:"tc_july",    n:"T.C. July",           w:0, a:3700000, tasaEA:0.30},
+    {id:"codensa",    n:"Codensa",             w:0, a:3000000, tasaEA:0.28},
+    {id:"vanty",      n:"Vanty",               w:0, a:2500000, tasaEA:0.00},
+    {id:"diana",      n:"Diana",               w:0, a:2000000, tasaEA:0.00},
+    {id:"tc_adry",    n:"Tarjeta de crédito Adry", w:0, a:430000, tasaEA:0.30}
+  ],
+  activos:[
+    {id:"apto",  n:"Apartamento",   valor:430000000, deudaId:"hipoteca", supuesto:false},
+    {id:"carro", n:"Carro",         valor:130000000, deudaId:"carro",    supuesto:true},
+    {id:"campo", n:"Campo / finca", valor:200000000, deudaId:null,       supuesto:true}
+  ],
+  supuestos:{
+    costoVentaPct:0.03,      // comisión inmobiliaria + gastos de escrituración
+    rendimientoEA:0.09,      // lo que rinde el sobrante en un CDT/FIC
+    tasaDeficitEA:0.28,      // costo de financiar el hueco cuando el mes queda negativo
+    ipc:0.05,                // inflación de gastos y arriendo
+    incSalarioEA:0.05,       // aumento anual de ingresos
+    valorizacionEA:0.06,     // valorización anual de inmuebles que no se venden
+    deprecCarroEA:-0.10,     // depreciación anual del carro si no se vende
+    cuotaMinPct:0.015,       // abono a capital cuando la deuda no tiene cuota asignada
+    horizonte:60             // meses de proyección
+  }
+};
+
+const PALETA = ["#9E2A1C","#1F4E6B","#2E6F4B","#5C4B7D","#B08214","#17201A"];
+
+const ESC_SEED = [
+  { id:"e1", nombre:"Como vamos", nota:"Nada se vende",
+    vender:{}, pagar:"ninguna", umbral:0.20,
+    vivienda:{modo:"quedarse", arriendo:3000000, precio:250000000, inicialPct:1, tasaEA:0.13, anios:15} },
+  { id:"e2", nombre:"Vender el apto, pagar todo, arriendo", nota:"Se quedan con carro y campo",
+    vender:{apto:true}, pagar:"todas", umbral:0.20,
+    vivienda:{modo:"arriendo", arriendo:3000000, precio:250000000, inicialPct:1, tasaEA:0.13, anios:15} },
+  { id:"e3", nombre:"Vender apto y carro", nota:"Se quedan solo con el campo",
+    vender:{apto:true, carro:true}, pagar:"todas", umbral:0.20,
+    vivienda:{modo:"arriendo", arriendo:3000000, precio:250000000, inicialPct:1, tasaEA:0.13, anios:15} },
+  { id:"e4", nombre:"Vender el apto y volver a comprar", nota:"Uno más pequeño, de contado",
+    vender:{apto:true}, pagar:"todas", umbral:0.20,
+    vivienda:{modo:"comprar", arriendo:3000000, precio:250000000, inicialPct:1, tasaEA:0.13, anios:15} }
+];
+
+/* =====================================================================
+   2. ESTADO
+   ===================================================================== */
+let D = clonar(SEED);
+let ESC = clonar(ESC_SEED);
+let seleccion = "e2";
+
+function clonar(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* =====================================================================
+   3. UTILIDADES
+   ===================================================================== */
+const fmt0 = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+function cop(v){ return fmt0.format(Math.round(v||0)); }
+function mill(v){
+  const x = (v||0)/1e6;
+  const dec = Math.abs(x) >= 100 ? 0 : 1;
+  return (x<0?"−":"") + "$" + Math.abs(x).toFixed(dec).replace('.',',') + " M";
+}
+function pct(v){ return (v*100).toFixed(1).replace('.',',') + "%"; }
+function mensual(ea){ return Math.pow(1+ea, 1/12) - 1; }
+function parseCOP(txt){
+  if(txt==null) return 0;
+  let s = String(txt).trim().toLowerCase().replace(/\$/g,'').replace(/\s/g,'');
+  let mult = 1;
+  if(/millones?$|mm?$/.test(s)){ mult = 1e6; s = s.replace(/millones?$|mm?$/,''); }
+  else if(/k$/.test(s)){ mult = 1e3; s = s.replace(/k$/,''); }
+  if(mult>1){ s = s.replace(/\./g,'').replace(/,/g,'.'); }
+  else { s = s.replace(/[.,](?=\d{3}\b)/g,'').replace(/,/g,'.'); }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n*mult;
+}
+function parsePct(txt){
+  const n = parseFloat(String(txt).replace('%','').replace(',','.'));
+  return isNaN(n) ? 0 : n/100;
+}
+function el(tag, attrs, html){
+  const e = document.createElement(tag);
+  if(attrs) for(const k in attrs){ if(k==='class') e.className=attrs[k]; else e.setAttribute(k,attrs[k]); }
+  if(html!=null) e.innerHTML = html;
+  return e;
+}
+
+/* =====================================================================
+   4. CÁLCULOS DE HOY
+   ===================================================================== */
+function ingresoMensual(){ return D.ingresos.reduce((s,i)=>s+i.w+i.a, 0); }
+function saldoDeuda(d){ return (d.w||0)+(d.a||0); }
+function deudaTotal(){ return D.deudas.reduce((s,d)=>s+saldoDeuda(d), 0); }
+function cuentaValor(c){ return (c.w||0)+(c.a||0); }
+function cuotaAsignada(deudaId){
+  return D.cuentas.filter(c=>c.deudaId===deudaId).reduce((s,c)=>s+cuentaValor(c),0);
+}
+function cuotaEfectiva(d){
+  const asig = cuotaAsignada(d.id);
+  if(asig > 0) return {valor:asig, estimada:false};
+  const saldo = saldoDeuda(d);
+  if(saldo <= 0) return {valor:0, estimada:false};
+  return {valor: saldo*mensual(d.tasaEA) + saldo*D.supuestos.cuotaMinPct, estimada:true};
+}
+function salidaMensualHoy(){
+  let s = D.cuentas.reduce((t,c)=>t+cuentaValor(c),0);
+  D.deudas.forEach(d=>{ const q = cuotaEfectiva(d); if(q.estimada) s += q.valor; });
+  return s;
+}
+function activosTotal(){ return D.activos.reduce((s,a)=>s+a.valor,0); }
+function patrimonioHoy(){ return activosTotal() - deudaTotal(); }
+
+/* =====================================================================
+   5. MOTOR DE SIMULACIÓN
+   ===================================================================== */
+function cuotaFrancesa(monto, im, n){
+  if(monto<=0 || n<=0) return 0;
+  if(im<=0) return monto/n;
+  return monto * im / (1 - Math.pow(1+im, -n));
+}
+
+function simular(esc){
+  const S = clonar(D);
+  const sup = S.supuestos;
+  const H = sup.horizonte;
+  const vendidos = {};
+  let caja = 0;
+  const ventas = [];
+
+  // --- 5.1 venta de activos ---
+  S.activos.forEach(a=>{
+    if(!esc.vender[a.id]) return;
+    vendidos[a.id] = true;
+    const bruto = a.valor * (1 - sup.costoVentaPct);
+    let cancelada = 0;
+    if(a.deudaId){
+      const d = S.deudas.find(x=>x.id===a.deudaId);
+      if(d){ cancelada = saldoDeuda(d); d.w=0; d.a=0; }
+    }
+    caja += bruto - cancelada;
+    ventas.push({n:a.n, bruto, cancelada, neto:bruto-cancelada});
+  });
+
+  const efectivoVenta = caja;   // lo que queda en la mano apenas se vende y se cancelan los créditos del activo
+
+  // --- 5.2 vivienda después ---
+  let arriendo = 0, cuotaVivienda = 0, inmuebleNuevo = 0, compraVivienda = 0;
+  if(esc.vivienda.modo === "arriendo"){
+    arriendo = esc.vivienda.arriendo;
+  } else if(esc.vivienda.modo === "comprar"){
+    const precio = esc.vivienda.precio;
+    const inicial = Math.min(precio * esc.vivienda.inicialPct, precio);
+    caja -= inicial;
+    compraVivienda = inicial;
+    const credito = precio - inicial;
+    cuotaVivienda = cuotaFrancesa(credito, mensual(esc.vivienda.tasaEA), esc.vivienda.anios*12);
+    inmuebleNuevo = precio;
+    if(credito > 0){
+      // el crédito nuevo entra como una deuda más, con su cuota fija
+      S.deudas.push({id:"nueva_hipoteca", n:"Hipoteca nueva", w:credito, a:0, tasaEA:esc.vivienda.tasaEA, cuotaFija:cuotaVivienda});
+    }
+  }
+
+  // --- 5.3 pago de deudas con el efectivo de la venta ---
+  const cajaAntesDePagar = caja;
+  const orden = S.deudas.filter(d=>saldoDeuda(d)>0).sort((x,y)=>y.tasaEA - x.tasaEA);
+  const pagadas = [];
+  orden.forEach(d=>{
+    if(d.id === "nueva_hipoteca") return;
+    const paga = esc.pagar==="todas" || (esc.pagar==="caras" && d.tasaEA >= esc.umbral);
+    if(!paga || caja<=0) return;
+    const saldo = saldoDeuda(d);
+    const abono = Math.min(caja, saldo);
+    const prop = saldo>0 ? abono/saldo : 0;
+    d.w = d.w*(1-prop); d.a = d.a*(1-prop);
+    caja -= abono;
+    pagadas.push({n:d.n, abono});
+  });
+
+  const deudaTrasPagos = S.deudas.reduce((s,d)=>s+saldoDeuda(d), 0);
+
+  // --- 5.4 proyección mes a mes ---
+  const serie = [];
+  let flujoMes1 = 0, mesCajaCero = null, mesSinDeuda = null;
+  const ingBase = S.ingresos.reduce((s,i)=>s+i.w+i.a, 0);
+  const rMes = mensual(sup.rendimientoEA), rDeficit = mensual(sup.tasaDeficitEA);
+
+  for(let m=1; m<=H; m++){
+    const infl = Math.pow(1+sup.ipc, m/12);
+    // gastos corrientes
+    let gastos = 0;
+    S.cuentas.forEach(c=>{
+      if(vendidos.apto && c.casa) return;
+      if(c.deudaId){
+        const d = S.deudas.find(x=>x.id===c.deudaId);
+        if(!d || saldoDeuda(d) <= 0) return;   // deuda pagada => la cuota se libera
+        gastos += cuentaValor(c);              // las cuotas no se indexan
+        return;
+      }
+      gastos += cuentaValor(c) * infl;
+    });
+    gastos += arriendo * infl;
+
+    // deudas: interés, cuota y amortización
+    let cuotasDeuda = 0;
+    S.deudas.forEach(d=>{
+      const saldo = saldoDeuda(d);
+      if(saldo <= 0) return;
+      const i = saldo * mensual(d.tasaEA);
+      const asignada = S.cuentas
+        .filter(c=>c.deudaId===d.id)
+        .reduce((s,c)=>s+cuentaValor(c), 0);
+      let cuota;
+      if(d.cuotaFija){ cuota = d.cuotaFija; gastos += cuota; }
+      else if(asignada > 0){ cuota = asignada; }        // ya está contada en gastos
+      else { cuota = i + saldo*sup.cuotaMinPct; gastos += cuota; }
+      cuotasDeuda += cuota;
+      const nuevo = Math.max(0, saldo + i - cuota);
+      const prop = saldo>0 ? nuevo/saldo : 0;
+      d.w = d.w*prop; d.a = d.a*prop;
+    });
+
+    const ingresos = ingBase * Math.pow(1+sup.incSalarioEA, m/12);
+    const rend = caja>0 ? caja*rMes : caja*rDeficit;
+    const flujo = ingresos - gastos;
+    caja += flujo + rend;
+    if(m===1) flujoMes1 = flujo;
+    if(mesCajaCero===null && caja < 0) mesCajaCero = m;
+
+    const deudaViva = S.deudas.reduce((s,d)=>s+saldoDeuda(d), 0);
+    if(mesSinDeuda===null && deudaViva <= 1) mesSinDeuda = m;
+
+    // valor de los activos retenidos
+    let activos = 0;
+    S.activos.forEach(a=>{
+      if(vendidos[a.id]) return;
+      const tasa = a.id==="carro" ? sup.deprecCarroEA : sup.valorizacionEA;
+      activos += a.valor * Math.pow(1+tasa, m/12);
+    });
+    if(inmuebleNuevo) activos += inmuebleNuevo * Math.pow(1+sup.valorizacionEA, m/12);
+
+    serie.push({m, caja, deuda:deudaViva, patrimonio: activos + caja - deudaViva, flujo});
+  }
+
+  return {
+    esc, ventas, pagadas,
+    cajaVenta: efectivoVenta,
+    compraVivienda,
+    cajaSobrante: Math.max(0, cajaAntesDePagar - pagadas.reduce((s,p)=>s+p.abono,0)),
+    deudaRestante: deudaTrasPagos,
+    flujoMes1,
+    mejora: flujoMes1 - (ingresoMensual() - salidaMensualHoy()),
+    serie,
+    patrimonio60: serie[serie.length-1].patrimonio,
+    mesCajaCero, mesSinDeuda,
+    arriendo,
+    pagoVivienda: arriendo || cuotaVivienda,
+    sinTecho: !!(esc.vender.apto && esc.vivienda.modo === 'quedarse')
+  };
+}
+
+let RES = {};
+function recalcular(){
+  RES = {};
+  ESC.forEach(e=>{ RES[e.id] = simular(e); });
+}
+
+/* =====================================================================
+   6. RENDER — HOY
+   ===================================================================== */
+function renderHoy(){
+  const ing = ingresoMensual(), sal = salidaMensualHoy(), gap = ing - sal;
+  document.getElementById('hero-gap').textContent = mill(Math.abs(gap));
+  if(gap >= 0){
+    document.querySelector('.hero h1').innerHTML = 'Cada mes sobran <em style="color:var(--verde)">'+mill(gap)+'</em> después de pagar todo.';
+  }
+  const max = Math.max(ing, sal);
+  const b = document.getElementById('balanza');
+  b.innerHTML = '';
+  [['Entra', ing, 'ing'], ['Sale', sal, 'sal']].map(([lab,val,cls])=>{
+    const row = el('div',{class:'bar-row'});
+    row.appendChild(el('div',{class:'bar-lab'}, lab));
+    const track = el('div',{class:'bar-track'});
+    track.appendChild(el('div',{class:'bar-fill '+cls, style:'width:'+(val/max*100)+'%'}, mill(val)));
+    row.appendChild(track);
+    b.appendChild(row);
+  });
+  if(gap < 0){
+    const row = el('div',{class:'bar-row'});
+    row.appendChild(el('div',{class:'bar-lab'},'El hueco'));
+    const track = el('div',{class:'bar-track', style:'background:transparent;border-color:transparent'});
+    const g = el('div',{class:'bar-gap', style:'left:'+(ing/max*100)+'%;right:'+(100-sal/max*100)+'%'});
+    g.appendChild(el('b',null, mill(gap)+' / mes'));
+    track.appendChild(g);
+    row.appendChild(track);
+    b.appendChild(row);
+  }
+
+  const k = document.getElementById('kpis-hoy');
+  const items = [
+    ['Flujo mensual', mill(gap), gap<0?'neg':'pos', gap<0? 'se financia con más deuda':'queda libre'],
+    ['Deuda total', mill(deudaTotal()), 'neg', D.deudas.filter(d=>saldoDeuda(d)>0).length+' obligaciones vivas'],
+    ['Activos', mill(activosTotal()), '', 'apartamento, carro y campo'],
+    ['Patrimonio neto', mill(patrimonioHoy()), patrimonioHoy()>=0?'pos':'neg', 'activos menos deudas'],
+    ['Deuda / ingresos', (deudaTotal()/(ingresoMensual()*12)).toFixed(1).replace('.',',')+'×', 'neg', 'años de ingreso completo']
+  ];
+  k.innerHTML = items.map(([kk,v,c,n])=>
+    '<div class="kpi"><div class="k">'+kk+'</div><div class="v '+c+'">'+v+'</div><div class="n">'+n+'</div></div>'
+  ).join('');
+  document.getElementById('hoy-fecha').textContent = new Date().toLocaleDateString('es-CO',{month:'long', year:'numeric'});
+}
+
+/* =====================================================================
+   7. RENDER — BIFURCACIÓN (elemento firma)
+   ===================================================================== */
+function renderFork(){
+  const svg = document.getElementById('fork');
+  const n = ESC.length;
+  const W = 900, filaH = 74, H = Math.max(200, n*filaH + 60);
+  const x0 = 118, x1 = 560, xEnd = 848;
+  const yMid = H/2;
+  svg.setAttribute('viewBox', '0 0 '+W+' '+H);
+  const hoyFlujo = ingresoMensual() - salidaMensualHoy();
+
+  let s = '';
+  // reglas del libro contable
+  for(let y=20; y<H; y+=26) s += '<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'" stroke="#DDE6D7" stroke-width="1"/>';
+
+  // nodo hoy
+  s += '<circle cx="'+x0+'" cy="'+yMid+'" r="9" fill="#17201A"/>';
+  s += '<text x="'+x0+'" y="'+(yMid-24)+'" text-anchor="middle" font-family="Bricolage Grotesque,sans-serif" font-weight="800" font-size="19" fill="#17201A">HOY</text>';
+  s += '<text x="'+x0+'" y="'+(yMid+30)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="13" fill="#9E2A1C">'+mill(hoyFlujo)+'/mes</text>';
+  s += '<text x="'+x0+'" y="'+(yMid+48)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="#8E958B">deuda '+mill(deudaTotal())+'</text>';
+
+  ESC.forEach((e,i)=>{
+    const r = RES[e.id];
+    const y = 46 + i*filaH + filaH/2;
+    const color = PALETA[i%PALETA.length];
+    const sel = e.id===seleccion;
+    const w = sel ? 4.5 : 2.2;
+    const op = sel ? 1 : .55;
+    const d = 'M '+(x0+10)+' '+yMid+' C '+((x0+x1)/2)+' '+yMid+', '+((x0+x1)/2)+' '+y+', '+x1+' '+y;
+    s += '<g class="rama" data-id="'+e.id+'" opacity="'+op+'">';
+    s += '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+w+'" stroke-linecap="round"/>';
+    s += '<line x1="'+x1+'" y1="'+y+'" x2="'+(xEnd-6)+'" y2="'+y+'" stroke="'+color+'" stroke-width="'+w+'" stroke-dasharray="'+(sel?'0':'5 5')+'"/>';
+    s += '<circle cx="'+xEnd+'" cy="'+y+'" r="'+(sel?7:5)+'" fill="'+color+'"/>';
+    s += '<text x="'+(x1+6)+'" y="'+(y-12)+'" font-family="Bricolage Grotesque,sans-serif" font-weight="'+(sel?800:600)+'" font-size="14" fill="#17201A">'+escapar(e.nombre)+'</text>';
+    const f = r ? r.flujoMes1 : 0;
+    s += '<text x="'+(x1+6)+'" y="'+(y+16)+'" font-family="IBM Plex Mono,monospace" font-size="13" fill="'+(f<0?'#9E2A1C':'#2E6F4B')+'">'+mill(f)+'/mes'+
+         '<tspan fill="#8E958B" font-size="11">   deuda '+mill(r?r.deudaRestante:0)+'</tspan></text>';
+    s += '</g>';
+  });
+  svg.innerHTML = s;
+  svg.querySelectorAll('.rama').forEach(g=>{
+    g.addEventListener('click', ()=>{ seleccion = g.dataset.id; renderFork(); renderEsc(); });
+  });
+}
+function escapar(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* =====================================================================
+   8. RENDER — TARJETAS DE ESCENARIO
+   ===================================================================== */
+function renderEsc(){
+  const g = document.getElementById('esc-grid');
+  g.innerHTML = '';
+  ESC.forEach((e,i)=>{
+    const r = RES[e.id];
+    const color = PALETA[i%PALETA.length];
+    const card = el('div',{class:'esc', style:'border-top-color:'+color+(e.id===seleccion?';box-shadow:0 0 0 2px '+color:'')});
+
+    // encabezado
+    const head = el('div',{class:'esc-head'});
+    const h = el('div',null,'');
+    const inp = el('input',{type:'text', value:e.nombre, class:'esc-nombre', style:'font-family:var(--display);font-weight:800;font-size:19px;border:0;background:transparent;width:100%;letter-spacing:-.025em;color:var(--tinta)'});
+    inp.addEventListener('change', ()=>{ e.nombre = inp.value; todo(); });
+    h.appendChild(inp);
+    h.appendChild(el('span',{class:'tag'}, escapar(e.nota||'')));
+    head.appendChild(h);
+    if(ESC.length>1){
+      const x = el('button',{class:'btn-x', title:'Eliminar escenario'},'×');
+      x.addEventListener('click',()=>{ ESC = ESC.filter(z=>z.id!==e.id); if(seleccion===e.id) seleccion=ESC[0].id; todo(); });
+      head.appendChild(x);
+    }
+    card.appendChild(head);
+
+    // resultados
+    const res = el('div',{class:'esc-res'});
+    const items = [
+      ['Flujo mensual', mill(r.flujoMes1), r.flujoMes1<0?'neg':'pos'],
+      ['Cambio vs hoy', (r.mejora>=0?'+':'')+mill(r.mejora), r.mejora>=0?'pos':'neg'],
+      ['Efectivo tras vender', mill(r.cajaVenta), ''],
+      ['Deuda que queda', mill(r.deudaRestante), r.deudaRestante>0?'neg':'pos'],
+      ['Sobrante invertido', mill(r.cajaSobrante), ''],
+      ['Patrimonio a 5 años', mill(r.patrimonio60), r.patrimonio60>=0?'pos':'neg']
+    ];
+    res.innerHTML = items.map(([k,v,c])=>'<div class="res-it"><div class="k">'+k+'</div><div class="v '+c+'">'+v+'</div></div>').join('');
+    card.appendChild(res);
+
+    // controles
+    const ctl = el('div',{class:'esc-ctl'});
+
+    // qué se vende
+    const cv = el('div');
+    cv.appendChild(el('div',{class:'ctl-lab'},'Qué se vende'));
+    const chips = el('div',{class:'chips'});
+    D.activos.forEach(a=>{
+      const c = el('button',{class:'chip'+(e.vender[a.id]?' on':''), type:'button'}, a.n+' · '+mill(a.valor));
+      c.addEventListener('click', ()=>{ e.vender[a.id] = !e.vender[a.id]; todo(); });
+      chips.appendChild(c);
+    });
+    cv.appendChild(chips); ctl.appendChild(cv);
+
+    // qué deudas se pagan
+    const cp = el('div');
+    cp.appendChild(el('div',{class:'ctl-lab'},'Qué deudas se pagan con esa plata'));
+    const chips2 = el('div',{class:'chips'});
+    [['todas','Todas'],['caras','Solo las caras'],['ninguna','Ninguna']].forEach(([v,lab])=>{
+      const c = el('button',{class:'chip'+(e.pagar===v?' on':''), type:'button'}, lab);
+      c.addEventListener('click', ()=>{ e.pagar = v; todo(); });
+      chips2.appendChild(c);
+    });
+    cp.appendChild(chips2);
+    if(e.pagar==='caras'){
+      const row = el('div',{class:'row-in'});
+      row.appendChild(el('label',null,'Desde qué tasa E.A. se considera cara'));
+      const inpU = el('input',{type:'text', class:'mini', value:pct(e.umbral)});
+      inpU.addEventListener('change',()=>{ e.umbral = parsePct(inpU.value); todo(); });
+      row.appendChild(inpU); cp.appendChild(row);
+    }
+    ctl.appendChild(cp);
+
+    // vivienda
+    const cvv = el('div');
+    cvv.appendChild(el('div',{class:'ctl-lab'},'Dónde viven después'));
+    const chips3 = el('div',{class:'chips'});
+    [['quedarse','Se quedan'],['arriendo','Arriendo'],['comprar','Compran otra']].forEach(([v,lab])=>{
+      const c = el('button',{class:'chip'+(e.vivienda.modo===v?' on':''), type:'button'}, lab);
+      c.addEventListener('click', ()=>{ e.vivienda.modo = v; todo(); });
+      chips3.appendChild(c);
+    });
+    cvv.appendChild(chips3);
+
+    if(e.vivienda.modo==='arriendo'){
+      cvv.appendChild(campoMoney('Arriendo mensual', e.vivienda.arriendo, v=>{ e.vivienda.arriendo=v; todo(); }));
+    }
+    if(e.vivienda.modo==='comprar'){
+      cvv.appendChild(campoMoney('Precio de la nueva', e.vivienda.precio, v=>{ e.vivienda.precio=v; todo(); }));
+      const row = el('div',{class:'row-in'});
+      row.appendChild(el('label',null,'Cuánto pagan de contado'));
+      const sel = el('select');
+      [[1,'Todo'],[0.7,'70%'],[0.5,'50%'],[0.3,'30%']].forEach(([v,lab])=>{
+        const o = el('option',{value:v}, lab); if(Math.abs(e.vivienda.inicialPct-v)<0.001) o.selected=true; sel.appendChild(o);
+      });
+      sel.addEventListener('change',()=>{ e.vivienda.inicialPct = parseFloat(sel.value); todo(); });
+      row.appendChild(sel); cvv.appendChild(row);
+      if(e.vivienda.inicialPct < 1){
+        const r2 = el('div',{class:'row-in'});
+        r2.appendChild(el('label',null,'Crédito: tasa E.A. y años'));
+        const it = el('input',{type:'text', class:'mini', value:pct(e.vivienda.tasaEA)});
+        it.addEventListener('change',()=>{ e.vivienda.tasaEA = parsePct(it.value); todo(); });
+        const ia = el('input',{type:'text', class:'mini', value:e.vivienda.anios});
+        ia.addEventListener('change',()=>{ e.vivienda.anios = parseInt(ia.value)||15; todo(); });
+        r2.appendChild(it); r2.appendChild(ia); cvv.appendChild(r2);
+      }
+    }
+    ctl.appendChild(cvv);
+
+    if(r.sinTecho){
+      ctl.appendChild(el('div',{style:'font-size:12.5px;color:var(--oro);border-left:3px solid var(--oro);padding:7px 10px;background:rgba(176,130,20,.08)'},
+        'Este camino vende el apartamento pero no incluye ningún pago de vivienda. Elige arriendo o comprar otra para que el flujo sea real.'));
+    }
+
+    // detalle
+    const det = el('details',{style:'margin-top:2px'});
+    det.appendChild(el('summary',{style:'cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta-35)'},'Ver el detalle del movimiento'));
+    let dh = '<div style="font-size:12.5px;color:var(--tinta-60);padding:10px 0 2px;line-height:1.7">';
+    if(r.ventas.length){
+      dh += '<b style="color:var(--tinta)">Ventas</b><br>';
+      r.ventas.forEach(v=>{ dh += v.n+': '+mill(v.bruto)+' menos '+mill(v.cancelada)+' del crédito = <span class="num">'+mill(v.neto)+'</span><br>'; });
+    } else { dh += 'No se vende nada.<br>'; }
+    if(r.pagadas.length){
+      dh += '<br><b style="color:var(--tinta)">Deudas pagadas</b> (de la más cara a la más barata)<br>';
+      r.pagadas.forEach(p=>{ dh += p.n+': <span class="num">'+mill(p.abono)+'</span><br>'; });
+    }
+    if(r.compraVivienda){
+      dh += '<br><b style="color:var(--tinta)">Compra de vivienda</b><br>Cuota inicial: <span class="num">'+mill(r.compraVivienda)+'</span><br>';
+    }
+    dh += '<br><b style="color:var(--tinta)">Después</b><br>';
+    if(r.pagoVivienda) dh += (r.arriendo?'Arriendo':'Cuota de la hipoteca nueva')+': '+mill(r.pagoVivienda)+'/mes<br>';
+    dh += 'Sobrante invertido al '+pct(D.supuestos.rendimientoEA)+' E.A.: '+mill(r.cajaSobrante)+'<br>';
+    dh += r.mesCajaCero ? '<span style="color:var(--rojo)">La caja se vuelve negativa en el mes '+r.mesCajaCero+'.</span><br>' : '<span style="color:var(--verde)">La caja nunca se vuelve negativa en 5 años.</span><br>';
+    dh += r.mesSinDeuda ? 'Queda sin deudas en el mes '+r.mesSinDeuda+'.' : 'Sigue con deuda al final de los 5 años.';
+    dh += '</div>';
+    det.appendChild(el('div',null,dh));
+    ctl.appendChild(det);
+
+    card.appendChild(ctl);
+    card.addEventListener('click', ()=>{ if(seleccion!==e.id){ seleccion=e.id; renderFork(); renderEsc(); } });
+    g.appendChild(card);
+  });
+}
+function campoMoney(label, valor, onchange){
+  const row = el('div',{class:'row-in'});
+  row.appendChild(el('label',null,label));
+  const i = el('input',{type:'text', class:'money', value:cop(valor)});
+  i.addEventListener('focus',()=>{ i.value = Math.round(parseCOP(i.value)); i.select(); });
+  i.addEventListener('change',()=>{ onchange(parseCOP(i.value)); });
+  row.appendChild(i);
+  return row;
+}
+
+/* =====================================================================
+   9. RENDER — COMPARACIÓN Y GRÁFICOS
+   ===================================================================== */
+function renderComparar(){
+  const t = document.getElementById('tabla-comp');
+  const filas = [
+    ['Efectivo tras vender (neto de créditos)', e=>mill(RES[e.id].cajaVenta)],
+    ['Deuda que queda hoy', e=>mill(RES[e.id].deudaRestante)],
+    ['Sobrante que queda invertido', e=>mill(RES[e.id].cajaSobrante)],
+    ['Arriendo o cuota de vivienda', e=>mill(RES[e.id].pagoVivienda)],
+    ['Cuota inicial de la vivienda nueva', e=>mill(RES[e.id].compraVivienda)],
+    ['Flujo mensual mes 1', e=>mill(RES[e.id].flujoMes1)],
+    ['Cambio frente a hoy', e=>(RES[e.id].mejora>=0?'+':'')+mill(RES[e.id].mejora)],
+    ['Caja acumulada a 5 años', e=>mill(RES[e.id].serie[RES[e.id].serie.length-1].caja)],
+    ['Patrimonio neto a 5 años', e=>mill(RES[e.id].patrimonio60)],
+    ['Mes en que la caja se vuelve negativa', e=>RES[e.id].mesCajaCero ? 'mes '+RES[e.id].mesCajaCero : 'nunca'],
+    ['Mes en que quedan sin deudas', e=>RES[e.id].mesSinDeuda ? 'mes '+RES[e.id].mesSinDeuda : '—']
+  ];
+  let h = '<thead><tr><th>Indicador</th>' + ESC.map((e,i)=>'<th style="color:'+PALETA[i%PALETA.length]+'">'+escapar(e.nombre)+'</th>').join('') + '</tr></thead><tbody>';
+  filas.forEach(([lab,fn])=>{
+    h += '<tr><td>'+lab+'</td>' + ESC.map(e=>'<td class="hi">'+fn(e)+'</td>').join('') + '</tr>';
+  });
+  h += '</tbody>';
+  t.innerHTML = h;
+
+  linea('chart-pat','leyenda-pat', s=>s.patrimonio, 900, 340);
+  linea('chart-caja','leyenda-caja', s=>s.caja, 900, 300);
+}
+
+function linea(idSvg, idLeg, get, W, H){
+  const svg = document.getElementById(idSvg);
+  const P = {t:18, r:16, b:34, l:74};
+  const H0 = D.supuestos.horizonte;
+  let min = 0, max = 0;
+  ESC.forEach(e=>RES[e.id].serie.forEach(s=>{ const v = get(s); if(v<min) min=v; if(v>max) max=v; }));
+  if(max===min){ max = min+1; }
+  const pad = (max-min)*0.08; max += pad; min -= pad;
+  const X = m => P.l + (m-1)/(H0-1) * (W-P.l-P.r);
+  const Y = v => P.t + (1-(v-min)/(max-min)) * (H-P.t-P.b);
+
+  let s = '';
+  // grilla + eje Y
+  const pasos = 5;
+  for(let i=0;i<=pasos;i++){
+    const v = min + (max-min)*i/pasos, y = Y(v);
+    s += '<line x1="'+P.l+'" y1="'+y+'" x2="'+(W-P.r)+'" y2="'+y+'" stroke="#DDE6D7" stroke-width="1"/>';
+    s += '<text x="'+(P.l-8)+'" y="'+(y+4)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#8E958B">'+mill(v)+'</text>';
+  }
+  // cero
+  if(min < 0 && max > 0){
+    s += '<line x1="'+P.l+'" y1="'+Y(0)+'" x2="'+(W-P.r)+'" y2="'+Y(0)+'" stroke="#17201A" stroke-width="1.5"/>';
+  }
+  // eje X
+  for(let m=12; m<=H0; m+=12){
+    s += '<line x1="'+X(m)+'" y1="'+P.t+'" x2="'+X(m)+'" y2="'+(H-P.b)+'" stroke="#DDE6D7" stroke-width="1"/>';
+    s += '<text x="'+X(m)+'" y="'+(H-P.b+18)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#8E958B">año '+(m/12)+'</text>';
+  }
+  // líneas
+  ESC.forEach((e,i)=>{
+    const color = PALETA[i%PALETA.length];
+    const sel = e.id===seleccion;
+    const d = RES[e.id].serie.map((p,j)=> (j?'L':'M') + X(p.m).toFixed(1) + ' ' + Y(get(p)).toFixed(1)).join(' ');
+    s += '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(sel?3.2:1.8)+'" opacity="'+(sel?1:.6)+'" stroke-linejoin="round"/>';
+  });
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML = s;
+
+  document.getElementById(idLeg).innerHTML = ESC.map((e,i)=>
+    '<span><i style="background:'+PALETA[i%PALETA.length]+'"></i>'+escapar(e.nombre)+'</span>').join('');
+}
+
+/* =====================================================================
+   10. RENDER — TABLAS DE DATOS EDITABLES
+   ===================================================================== */
+function inputMoney(valor, onchange, cls){
+  const i = el('input',{type:'text', class:'money '+(cls||''), value:cop(valor)});
+  i.addEventListener('focus',()=>{ i.value = Math.round(parseCOP(i.value)); i.select(); });
+  i.addEventListener('change',()=>{ onchange(parseCOP(i.value)); });
+  return i;
+}
+function celda(tr, contenido, cls){
+  const td = el('td', cls?{class:cls}:null);
+  if(typeof contenido === 'string') td.innerHTML = contenido; else td.appendChild(contenido);
+  tr.appendChild(td);
+  return td;
+}
+function renderDatos(){
+  // activos
+  const ta = document.getElementById('t-activos');
+  ta.innerHTML = '<thead><tr><th>Activo</th><th>Valor comercial</th><th>Crédito asociado</th><th>Lo que queda libre</th></tr></thead>';
+  const tba = el('tbody');
+  D.activos.forEach(a=>{
+    const tr = el('tr');
+    celda(tr, escapar(a.n) + (a.supuesto?' <span style="color:var(--oro);font-size:11px">· por confirmar</span>':''));
+    const td = el('td', a.supuesto?{class:'editable'}:null);
+    td.appendChild(inputMoney(a.valor, v=>{ a.valor=v; todo(); }));
+    tr.appendChild(td);
+    const d = a.deudaId ? D.deudas.find(x=>x.id===a.deudaId) : null;
+    celda(tr, d ? mill(saldoDeuda(d)) : '—');
+    celda(tr, mill(a.valor*(1-D.supuestos.costoVentaPct) - (d?saldoDeuda(d):0)), 'hi');
+    tba.appendChild(tr);
+  });
+  const trT = el('tr');
+  celda(trT,'<b>Total</b>'); celda(trT, '<b>'+mill(activosTotal())+'</b>'); celda(trT,''); celda(trT,'');
+  tba.appendChild(trT);
+  ta.appendChild(tba);
+
+  // deudas
+  const td_ = document.getElementById('t-deudas');
+  td_.innerHTML = '<thead><tr><th>Deuda</th><th>Saldo</th><th>Tasa E.A.</th><th>Cuota mensual</th><th>Interés del mes</th></tr></thead>';
+  const tbd = el('tbody');
+  D.deudas.slice().sort((x,y)=>saldoDeuda(y)-saldoDeuda(x)).forEach(d=>{
+    if(saldoDeuda(d)<=0) return;
+    const tr = el('tr');
+    celda(tr, escapar(d.n));
+    const tds = el('td');
+    tds.appendChild(inputMoney(saldoDeuda(d), v=>{ if(d.w>=d.a){d.w=v;d.a=0;} else {d.a=v;d.w=0;} todo(); }));
+    tr.appendChild(tds);
+    const tdt = el('td',{class:'editable'});
+    const it = el('input',{type:'text', class:'mini', value:pct(d.tasaEA)});
+    it.addEventListener('change',()=>{ d.tasaEA = parsePct(it.value); todo(); });
+    tdt.appendChild(it); tr.appendChild(tdt);
+    const q = cuotaEfectiva(d);
+    celda(tr, mill(q.valor) + (q.estimada?' <span style="color:var(--oro);font-size:10px">est.</span>':''));
+    celda(tr, mill(saldoDeuda(d)*mensual(d.tasaEA)), 'neg');
+    tbd.appendChild(tr);
+  });
+  const trD = el('tr');
+  celda(trD,'<b>Total</b>'); celda(trD,'<b>'+mill(deudaTotal())+'</b>'); celda(trD,'');
+  celda(trD,'<b>'+mill(D.deudas.reduce((s,d)=>s+cuotaEfectiva(d).valor,0))+'</b>');
+  celda(trD,'<b>'+mill(D.deudas.reduce((s,d)=>s+saldoDeuda(d)*mensual(d.tasaEA),0))+'</b>');
+  tbd.appendChild(trD);
+  td_.appendChild(tbd);
+
+  // cuentas
+  const tc = document.getElementById('t-cuentas');
+  tc.innerHTML = '<thead><tr><th>Cuenta</th><th>'+D.personas.p1+'</th><th>'+D.personas.p2+'</th><th>Total</th><th>Se va con el apto</th></tr></thead>';
+  const tbc = el('tbody');
+  D.cuentas.forEach(c=>{
+    const tr = el('tr');
+    celda(tr, escapar(c.n) + (c.deudaId?' <span style="color:var(--tinta-35);font-size:11px">· cuota</span>':''));
+    const t1 = el('td'); t1.appendChild(inputMoney(c.w, v=>{ c.w=v; todo(); })); tr.appendChild(t1);
+    const t2 = el('td'); t2.appendChild(inputMoney(c.a, v=>{ c.a=v; todo(); })); tr.appendChild(t2);
+    celda(tr, mill(cuentaValor(c)), 'hi');
+    const t3 = el('td');
+    const ck = el('input',{type:'checkbox'}); ck.checked = !!c.casa || !!(c.deudaId==='hipoteca');
+    ck.addEventListener('change',()=>{ c.casa = ck.checked; todo(); });
+    t3.appendChild(ck); tr.appendChild(t3);
+    tbc.appendChild(tr);
+  });
+  const trC = el('tr');
+  celda(trC,'<b>Total</b>');
+  celda(trC,'<b>'+mill(D.cuentas.reduce((s,c)=>s+c.w,0))+'</b>');
+  celda(trC,'<b>'+mill(D.cuentas.reduce((s,c)=>s+c.a,0))+'</b>');
+  celda(trC,'<b>'+mill(D.cuentas.reduce((s,c)=>s+cuentaValor(c),0))+'</b>');
+  celda(trC,'');
+  tbc.appendChild(trC);
+  tc.appendChild(tbc);
+
+  // ingresos
+  const ti = document.getElementById('t-ingresos');
+  ti.innerHTML = '<thead><tr><th>Concepto</th><th>'+D.personas.p1+'</th><th>'+D.personas.p2+'</th><th>Total</th></tr></thead>';
+  const tbi = el('tbody');
+  D.ingresos.forEach(x=>{
+    const tr = el('tr');
+    celda(tr, escapar(x.n));
+    const t1 = el('td'); t1.appendChild(inputMoney(x.w, v=>{ x.w=v; todo(); })); tr.appendChild(t1);
+    const t2 = el('td'); t2.appendChild(inputMoney(x.a, v=>{ x.a=v; todo(); })); tr.appendChild(t2);
+    celda(tr, mill(x.w+x.a), 'hi');
+    tbi.appendChild(tr);
+  });
+  const trI = el('tr');
+  celda(trI,'<b>Total</b>');
+  celda(trI,'<b>'+mill(D.ingresos.reduce((s,x)=>s+x.w,0))+'</b>');
+  celda(trI,'<b>'+mill(D.ingresos.reduce((s,x)=>s+x.a,0))+'</b>');
+  celda(trI,'<b>'+mill(ingresoMensual())+'</b>');
+  tbi.appendChild(trI);
+  ti.appendChild(tbi);
+
+  // supuestos
+  const ts = document.getElementById('t-supuestos');
+  ts.innerHTML = '<thead><tr><th>Supuesto</th><th>Valor</th><th>Qué significa</th></tr></thead>';
+  const tbs = el('tbody');
+  const sup = [
+    ['costoVentaPct','Costo de vender','Comisión inmobiliaria, escrituración y gastos de la venta'],
+    ['rendimientoEA','Rendimiento del sobrante','Lo que rinde la plata que queda, en CDT o fondo'],
+    ['tasaDeficitEA','Costo de tapar huecos','Tasa a la que se financia el mes que queda negativo'],
+    ['ipc','Inflación anual','Sube gastos y arriendo cada año'],
+    ['incSalarioEA','Aumento anual de ingresos','Cuánto suben los ingresos por año'],
+    ['valorizacionEA','Valorización de inmuebles','Cuánto sube el valor de lo que no se vende'],
+    ['deprecCarroEA','Depreciación del carro','Cuánto pierde el carro por año'],
+    ['cuotaMinPct','Abono mínimo a capital','Se usa cuando la deuda no tiene cuota asignada']
+  ];
+  sup.forEach(([k,lab,exp])=>{
+    const tr = el('tr');
+    celda(tr, lab);
+    const t = el('td',{class:'editable'});
+    const i = el('input',{type:'text', class:'mini', value:pct(D.supuestos[k])});
+    i.addEventListener('change',()=>{ D.supuestos[k] = parsePct(i.value); todo(); });
+    t.appendChild(i); tr.appendChild(t);
+    celda(tr,'<span style="font-family:var(--cuerpo);font-size:12.5px;color:var(--tinta-60)">'+exp+'</span>');
+    tbs.appendChild(tr);
+  });
+  ts.appendChild(tbs);
+}
+
+/* =====================================================================
+   11. ORQUESTA
+   ===================================================================== */
+function todo(){
+  recalcular();
+  renderHoy();
+  renderFork();
+  renderEsc();
+  renderComparar();
+  renderDatos();
+}
+
+document.getElementById('add-esc').addEventListener('click', ()=>{
+  const id = 'e'+Date.now();
+  ESC.push({ id, nombre:'Escenario '+(ESC.length+1), nota:'Mi combinación',
+    vender:{apto:true}, pagar:'todas', umbral:0.20,
+    vivienda:{modo:'arriendo', arriendo:3000000, precio:250000000, inicialPct:1, tasaEA:0.13, anios:15} });
+  seleccion = id; todo();
+  document.getElementById('esc-grid').lastChild.scrollIntoView({block:'center'});
+});
+document.getElementById('reset').addEventListener('click', ()=>{
+  D = clonar(SEED); ESC = clonar(ESC_SEED); seleccion = 'e2'; todo();
+});
+document.getElementById('export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify({datos:D, escenarios:ESC}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'plan-casa.json';
+  a.click();
+});
+document.getElementById('import-btn').addEventListener('click', ()=>document.getElementById('import').click());
+document.getElementById('import').addEventListener('change', ev=>{
+  const f = ev.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const j = JSON.parse(rd.result);
+      if(j.datos) D = j.datos;
+      if(j.escenarios && j.escenarios.length){ ESC = j.escenarios; seleccion = ESC[0].id; }
+      todo();
+    }catch(err){ alert('El archivo no se pudo leer. Debe ser el JSON que descargaste desde aquí.'); }
+  };
+  rd.readAsText(f);
+});
+document.getElementById('print').addEventListener('click', ()=>window.print());
+
+todo();
+</script>
+</body>
+</html>
